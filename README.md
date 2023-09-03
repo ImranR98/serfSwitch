@@ -43,7 +43,7 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 12. The female jumpers are used to power a second switch without needing a second USB-C power supply.
     - Using a male-male wire, connect the `VBUS`-attached pin of the USB-powered switch to the `VIN`-attached (power) pin on the second switch.
     - Do the same to connect the `GND`-attached pins of both switches.
-    - Due to power constraints, only 2 switches can be attached in this way.
+    - Due to power constraints, only 1 switch can be attached in this way.
 
 ## Result
 
