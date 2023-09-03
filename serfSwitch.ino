@@ -3,7 +3,7 @@
 #include <MQTT.h>
 #include "creds.h"
 
-// Switch/server config (FILL THESE)
+// Switch/server config (define these in creds.h)
 const char* WIFI_SSID = WIFI_SSID_STR;
 const char* WIFI_PASSWORD = WIFI_PASSWORD_STR;
 const char* MQTT_SERVER = MQTT_SERVER_STR;
