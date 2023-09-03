@@ -35,11 +35,7 @@ String INTRODUCTION_PAYLOAD;
 
 // Variable inits
 WiFiClientSecure NET;
-MQTTClient MQTT(1024);const char WIFI_SSID* = WIFI_SSID_STR;
-const char WIFI_PASSWORD* = WIFI_PASSWORD_STR;
-const char MQTT_SERVER* = MQTT_SERVER_STR;
-const char MQTT_USERNAME* = MQTT_USERNAME_STR;
-const char MQTT_PASSWORD* = MQTT_PASSWORD_STR;
+MQTTClient MQTT(1024);
 unsigned long LAST_LOOP_TIME = 0;
 unsigned long LAST_BUTTON_PUSH_TIME = 0;
 bool SWITCH_STATE = false;
