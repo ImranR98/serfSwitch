@@ -50,3 +50,10 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 Hey, I never said it was pretty.
 
 ![result.png](result.png)
+
+## Potential Improvements
+
+- Use a cheaper ESP32 board instead of the Arduino (the Arduino IDE and language should still be usable - it isn't clear if code changes would be needed).
+- Use a board without header pins soldered on.
+- Make use of a push button for manual control.
+- Design and 3D print a housing (neater and better looking than the current system).
