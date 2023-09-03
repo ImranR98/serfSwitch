@@ -198,7 +198,7 @@ void setup() {
   MQTT.publish(CONFIG_TOPIC, INTRODUCTION_PAYLOAD, true, 1);
 }
 
-// Run the MQTT loop, manage manual button toggles, ublish state messages when needed
+// Run the MQTT loop, manage manual button toggles, publish state messages when needed
 void loop() {
   MQTT.loop();
   delay(10);  // <- fixes some issues with WiFi stability
