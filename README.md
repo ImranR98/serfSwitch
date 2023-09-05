@@ -57,3 +57,4 @@ Hey, I never said it was pretty.
 - Use a board without header pins soldered on.
 - Make use of a push button for manual control.
 - Design and 3D print a housing (neater and better looking than the current system).
+- See if the board can be put into sleep mode for 5-10 seconds between syncs to save power. This will result in less responsiveness but it's a decent compromise if it makes a [battery powered solution](https://www.amazon.ca/dp/B076TFJBHW) more viable. The current system only lasts about 20 hours when powered by [high-capacity 9v batteries](https://www.amazon.ca/dp/B018N7YZL6).
