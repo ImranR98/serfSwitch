@@ -27,6 +27,7 @@ int SWITCH_OFF_SERVO_ANGLE=20;
 int SWITCH_ID_LENGTH = 5;
 bool NEW_ID_WAS_GENERATED = false;
 String SWITCH_ID;
+String SWITCH_NAME;
 String TOPIC_BASE;
 String CONFIG_TOPIC;
 String STATE_TOPIC;
@@ -73,11 +74,11 @@ void connect() {
     delay(2000);
   }
 
-  // do not verify tls certificate
-  // check the following example for methods to verify the server:
+  // Prevent TLS certificate verification
+  // TODO: Figure this out. See:
   // https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFiClientSecure/examples/WiFiClientSecure/WiFiClientSecure.ino
   NET.setInsecure();
-  while (!MQTT.connect(("switch-" + SWITCH_ID).c_str(), MQTT_USERNAME, MQTT_PASSWORD, false)) {
+  while (!MQTT.connect(SWITCH_NAME.c_str(), MQTT_USERNAME, MQTT_PASSWORD, false)) {
     Serial.println("Connecting to MQTT server...");
     delay(1000);
   }
@@ -140,7 +141,7 @@ void messageReceived(String &topic, String &payload) {
   // or push to a queue and handle it in the loop after calling `client.loop()`.
 }
 
-// Prepare hardware and MQTT
+// Prepare hardware and connect to MQTT
 void setup() {
   Serial.begin(115200);
   pinMode(SERVO_PIN_A, OUTPUT);
@@ -151,8 +152,9 @@ void setup() {
   btStop(); // Turn off Bluetooth to save power
   EEPROM.begin(SWITCH_ID_LENGTH + 1);
 
-  delay(5000);
+  delay(5000); // For debugging - give me time to switch to serial monitor
 
+  // Generate a new random switch ID or use a saved one (in EEPROM)
   SWITCH_ID = EEPROM.readString(0);
   if (SWITCH_ID.length() != SWITCH_ID_LENGTH) {
     String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -165,6 +167,9 @@ void setup() {
     EEPROM.end();
     NEW_ID_WAS_GENERATED = true;
   }
+
+  // Initialize all remaining variables using the switch ID
+  SWITCH_NAME = "switch-" + SWITCH_ID;
   TOPIC_BASE = "homeassistant/switch/" + SWITCH_ID;
   CONFIG_TOPIC = TOPIC_BASE + "/config";
   STATE_TOPIC = TOPIC_BASE + "/state";
@@ -186,9 +191,6 @@ void setup() {
 
   Serial.println("Switch ID: " + SWITCH_ID + (NEW_ID_WAS_GENERATED ? " (newly generated)" : ""));
 
-  // Note: Local domain names (e.g. "Computer.local" on OSX) are not supported
-  // by Arduino. You need to set the IP address directly.
-  //
   // MQTT brokers usually use port 8883 for secure connections.
   MQTT.begin(MQTT_SERVER, 8883, NET);
   MQTT.onMessage(messageReceived);
@@ -201,7 +203,7 @@ void setup() {
 // Run the MQTT loop, manage manual button toggles, publish state messages when needed
 void loop() {
   MQTT.loop();
-  delay(10);  // <- fixes some issues with WiFi stability
+  delay(10);  // Fixes some issues with WiFi stability
   
   if (!MQTT.connected()) {
     Serial.println("Lost connection...");
