@@ -58,3 +58,22 @@ Hey, I never said it was pretty.
 - Make use of a push button for manual control.
 - Design and 3D print a housing (neater and better looking than the current system).
 - See if the board can be put into sleep mode for 5-10 seconds between syncs to save power. This will result in less responsiveness but it's a decent compromise if it makes a [battery powered solution](https://www.amazon.ca/dp/B076TFJBHW) more viable. The current system only lasts about 20 hours when powered by [high-capacity 9v batteries](https://www.amazon.ca/dp/B018N7YZL6).
+
+## TODO
+
+- Instead of hardcoding WiFi and MQTT Server info, the device should be configurable via bluetooth
+- This is easy enough to do on its own (just enable Bluetooth, listen for serial messages, and use any Bluetooth serial app on your phone)
+  - You send a message containing that info in a predefined format, and the device saves that to EEPROM (so it persists between reboots)
+- The problem is authentication - making sure you can only configure the device if you have physical access to it
+  - This could be solved using a 6 digit code that is generated when the device boots
+  - This code is communicated to the user via the RGB LED
+    - For example, '553 126' would be "RED blinks 5 times, BLUE blinks 5 times, GREEN blinks 3 times, RED blinks once, and so on..."
+    - While inconvenient, the user would only have to deal with this when configuring the device which would not happen often
+    - Then, any bluetooth communication that doesn't include the code would be ignored
+- So:
+  1. Add code to read/write config data from the EEPROM
+  2. Add code to connect to bluetooth and read serial communication
+  3. Add code that parses bluetooth input and sends it to be saved
+  4. Structure all this so it works as intended. Remember:
+     - If there is no config saved (as on first boot), do not try to connect to anything - just wait for bluetooth config to come in
+     - If the config is changed, apply those changes immediately instead of just saving to EEPROM and waiting for a reboot
