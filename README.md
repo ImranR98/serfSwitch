@@ -23,6 +23,7 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 
 ## Usage
 
+0. Setup the Arduino IDE with the [ESP32](https://github.com/espressif/arduino-esp32) and [MQTT](https://www.arduino.cc/reference/en/libraries/mqtt/) libraries (on Linux, you may need to add `SUBSYSTEMS=="usb", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0070", MODE:="0666"` to `/etc/udev/rules.d/60-arduino-esp32.rules`).
 1. Copy `creds.template.h` to `creds.h` and fill it out.
 2. Strip a centimeter or so of insulation off each of the three wires of the servo (power, ground, control).
 3. Do the same for 3 wires that end in female jumper pins. Coordinating colour with the 3 servo wires is recommended.
@@ -31,9 +32,8 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 6. Solder the 2 power wires (that were twisted together to form "one wire") to the `VIN` pin on the Arduino.
    - You could use the breadboard to prototype everything first.
 7. Solder the "merged" ground wire to one of the `GND` pins on the Arduino.
-8. Solder the servo control wire to either the `D6` or `D7` ports on the Arduino.
-   - Only one pin is techniclly used but the code outputs to both - this is a lazy way to "correct" a soldering error in my build.
-   - You can modify the code to use any other digital pins if needed.
+8. Solder the servo control wire to either the `D3`, `D6`, or `D7` ports on the Arduino.
+   - Only one pin is technically used but the code outputs to all 3 - this is a lazy way to "correct" a soldering error in my builds.
 9. Solder the remaining hanging wire (the third female jumper wire) to the `VBUS` pin on the Arduino.
 10. Connect a USB-C power supply to the device. It should show up in Home Assistant with a permanent randomly-generated ID, and should be usable immediately.
     - Depending on the motor used and how you set it up, you may need to modify some variables under `// Hardware config` - experiment with what values work for you.
