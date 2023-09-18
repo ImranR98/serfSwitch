@@ -11,8 +11,8 @@ const char* MQTT_USERNAME = MQTT_USERNAME_STR;
 const char* MQTT_PASSWORD = MQTT_PASSWORD_STR;
 
 // Hardware config (Arduino Nano ESP32, SG90 motor, built in LED, push button)
-const int SERVO_PIN_A = D7;
-const int SERVO_PIN_B = D6;
+const int SERVO_PINS[] = {D3, D6, D7};
+const int SERVO_PIN_LENGTH = sizeof(SERVO_PINS) / sizeof(SERVO_PINS[0]);
 const int INDICATOR_PIN=LED_BUILTIN;
 const int TOGGLE_BUTTON_PIN = D5;
 const int BUTTON_DEBOUNCE_DELAY = 500;
@@ -46,17 +46,14 @@ bool PENDING_STATE_UPDATE = false;
 void moveServoToApproxAngle(int angle) {
   Serial.println("Moving to angle: " + String(angle));
   int pulseWidth = map(angle, SERVO_ANGLE_MIN, SERVO_ANGLE_MAX, SERVO_PWM_MIN, SERVO_PWM_MAX);
-  digitalWrite(SERVO_PIN_A, HIGH);
-  digitalWrite(SERVO_PIN_B, HIGH);
-  delayMicroseconds(pulseWidth);
-  digitalWrite(SERVO_PIN_A, LOW);
-  digitalWrite(SERVO_PIN_B, LOW);
-  delay(30);
-  digitalWrite(SERVO_PIN_A, HIGH);
-  digitalWrite(SERVO_PIN_B, HIGH);
-  delayMicroseconds(pulseWidth);
-  digitalWrite(SERVO_PIN_A, LOW);
-  digitalWrite(SERVO_PIN_B, LOW);
+  for (int i = 0; i < 3; i++) { // Large angle changes need more than one "signal"
+    for (int j = 0; j < SERVO_PIN_LENGTH; j++) {
+      digitalWrite(SERVO_PINS[j], HIGH);
+      delayMicroseconds(pulseWidth);
+      digitalWrite(SERVO_PINS[j], LOW);
+      delay(30);
+    }
+  }
 }
 
 // Helper to flip the switch
@@ -144,8 +141,9 @@ void messageReceived(String &topic, String &payload) {
 // Prepare hardware and connect to MQTT
 void setup() {
   Serial.begin(115200);
-  pinMode(SERVO_PIN_A, OUTPUT);
-  pinMode(SERVO_PIN_B, OUTPUT);
+  for (int i = 0; i < SERVO_PIN_LENGTH; i++) {
+    pinMode(SERVO_PINS[i], OUTPUT);
+  }
   pinMode(INDICATOR_PIN, OUTPUT);
   pinMode(TOGGLE_BUTTON_PIN, INPUT_PULLUP);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
