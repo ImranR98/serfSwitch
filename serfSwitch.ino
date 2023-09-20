@@ -9,13 +9,7 @@
 #include "rgb.h"
 #include "servo.h"
 
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-
-// Hardware config (Arduino Nano ESP32, SG90 motor, built in LED, push button)
-const int TOGGLE_BUTTON_PIN = D5;
-const int BUTTON_DEBOUNCE_DELAY = 500;
-
+// Define switch configuration struct
 struct SwitchConfig {
   String SWITCH_ID;
   String BLUETOOTH_UUID;
@@ -25,32 +19,21 @@ struct SwitchConfig {
   String MQTT_SERVER;
   String MQTT_USERNAME;
   String MQTT_PASSWORD;
+  String CONFIG_CODE;
 };
+
+// Variable inits
+const int TOGGLE_BUTTON_PIN = D5;
+const int BUTTON_DEBOUNCE_DELAY = 500;
+WiFiClientSecure NET;
+MQTTClient MQTT(1024);
+unsigned long LAST_LOOP_TIME = 0;
+unsigned long LAST_BUTTON_PUSH_TIME = 0;
+const int SWITCH_ID_LENGTH = 5;
+bool NEW_ID_WAS_GENERATED = false;
 SwitchConfig switchConfig;
 
-String serializeSwitchConfigEditable(const SwitchConfig &config) {
-  String serialized = "";
-  serialized += config.SWITCH_ID + "|";
-  serialized += config.BLUETOOTH_UUID + "|";
-  serialized += config.CONFIG_CHARACTERISTIC_UUID + "|";
-  serialized += config.WIFI_SSID + "|";
-  serialized += config.WIFI_PASSWORD + "|";
-  serialized += config.MQTT_SERVER + "|";
-  serialized += config.MQTT_USERNAME + "|";
-  serialized += config.MQTT_PASSWORD;
-  return serialized;
-}
-
-bool deserializeSwitchConfigEditable(const String &serialized, SwitchConfig &config) {
-  int count = sscanf(serialized.c_str(), "%[^|]|%[^|]|%[^|]|%[^|]|%s",
-                     config.WIFI_SSID, config.WIFI_PASSWORD, config.MQTT_SERVER,
-                     config.MQTT_USERNAME, config.MQTT_PASSWORD);
-  return count == 5;
-}
-
 // Other variables initialized during setup
-int SWITCH_ID_LENGTH = 5;
-bool NEW_ID_WAS_GENERATED = false;
 String SWITCH_NAME;
 String TOPIC_BASE;
 String CONFIG_TOPIC;
@@ -58,14 +41,24 @@ String STATE_TOPIC;
 String COMMAND_TOPIC;
 String INTRODUCTION_PAYLOAD;
 
-// Variable inits
-WiFiClientSecure NET;
-MQTTClient MQTT(1024);
-unsigned long LAST_LOOP_TIME = 0;
-unsigned long LAST_BUTTON_PUSH_TIME = 0;
-String CONFIG_CODE = generateRandomNumString(6);
-
-bool isConfigValid() {
+// Switch config helper funcs
+String serializeSwitchConfigEditable(const SwitchConfig &config) {
+  String serialized = "";
+  serialized += config.WIFI_SSID + "|";
+  serialized += config.WIFI_PASSWORD + "|";
+  serialized += config.MQTT_SERVER + "|";
+  serialized += config.MQTT_USERNAME + "|";
+  serialized += config.MQTT_PASSWORD;
+  serialized += config.CONFIG_CODE + "|";
+  return serialized;
+}
+bool deserializeSwitchConfigEditable(const String &serialized, SwitchConfig &config) {
+  int count = sscanf(serialized.c_str(), "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%s",
+                     config.WIFI_SSID, config.WIFI_PASSWORD, config.MQTT_SERVER,
+                     config.MQTT_USERNAME, config.MQTT_PASSWORD, config.CONFIG_CODE);
+  return count == 5;
+}
+bool isSwitchConfigValid() {
   return !switchConfig.SWITCH_ID.isEmpty() &&
          !switchConfig.MQTT_SERVER.isEmpty() &&
          !switchConfig.MQTT_USERNAME.isEmpty() &&
@@ -74,6 +67,7 @@ bool isConfigValid() {
          !switchConfig.WIFI_PASSWORD.isEmpty();
 }
 
+// BLE callback for configuration - save new config if valid and restart
 class BluetoothLECallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
       String value = String((pCharacteristic->getValue()).c_str());
@@ -81,11 +75,13 @@ class BluetoothLECallbacks: public BLECharacteristicCallbacks {
       newConfig.SWITCH_ID = switchConfig.SWITCH_ID;
       newConfig.BLUETOOTH_UUID = switchConfig.BLUETOOTH_UUID;
       newConfig.CONFIG_CHARACTERISTIC_UUID = switchConfig.CONFIG_CHARACTERISTIC_UUID;
+      newConfig.CONFIG_CODE = switchConfig.CONFIG_CODE;
       bool isValid = deserializeSwitchConfigEditable(value, newConfig);
       if (isValid) {
         EEPROM.put(0, newConfig);
-        ESP.restart();
+        EEPROM.commit();
       }
+      ESP.restart();
     }
 };
 
@@ -106,6 +102,8 @@ void setup() {
 
   // Generate a new random switch ID or use a saved one (in EEPROM)
   EEPROM.get(0, switchConfig);
+  switchConfig.CONFIG_CODE = generateRandomNumString(6);
+  Serial.println("Config from flash: " + serializeSwitchConfigEditable(switchConfig));
   if (switchConfig.SWITCH_ID.length() != SWITCH_ID_LENGTH) {
     switchConfig.SWITCH_ID = generateRandomString(SWITCH_ID_LENGTH);
     switchConfig.BLUETOOTH_UUID = generateUUID();
@@ -157,10 +155,10 @@ void setup() {
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
 
-  blinkRGB(CONFIG_CODE);
+  blinkRGB(switchConfig.CONFIG_CODE);
 
   // If the device has been configured, initialize WiFi and MQTT
-  if (isConfigValid()) {
+  if (isSwitchConfigValid()) {
     WiFi.begin(switchConfig.WIFI_SSID, switchConfig.WIFI_PASSWORD);
     MQTT.begin(switchConfig.MQTT_SERVER.c_str(), 8883, NET);
     MQTT.onMessage(messageReceived);
@@ -168,6 +166,8 @@ void setup() {
     connect();
 
     MQTT.publish(CONFIG_TOPIC, INTRODUCTION_PAYLOAD, true, 1);
+  } else {
+    Serial.println("Config was not valid - will skip connecting.");
   }
 }
 
@@ -220,7 +220,7 @@ void messageReceived(String &topic, String &payload) {
 
 // Run the MQTT loop, manage manual button toggles, publish state messages
 void loop() {
-  if (isConfigValid()) {
+  if (isSwitchConfigValid()) {
     MQTT.loop();
     delay(10); // Fixes some issues with WiFi stability
 
@@ -241,7 +241,8 @@ void loop() {
       PENDING_STATE_UPDATE = false;
     }
   } else {
-    blinkRGB(CONFIG_CODE);
+    Serial.println("Blinking config code...");
+    blinkRGB(switchConfig.CONFIG_CODE);
     delay(5000);
   }
 }
