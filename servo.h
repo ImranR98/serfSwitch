@@ -1,6 +1,8 @@
 #ifndef SERVO_H
 #define SERVO_H
 
+#include <Arduino.h>
+
 const int SERVO_PINS[] = {D3, D6, D7};
 const int SERVO_PIN_LENGTH = sizeof(SERVO_PINS) / sizeof(SERVO_PINS[0]);
 const int INDICATOR_PIN = LED_BUILTIN;

@@ -1,28 +1,19 @@
 #include "rgb.h"
-#include <Arduino.h>
 
 void blinkRGB(String str) {
   for (int i = 0; i < str.length(); i++) {
     char digit = str.charAt(i);
     int blinkCount = digit - '0'; // Convert the character to an integer
+    long red = random(256);
+    long green = random(256);
+    long blue = random(256);
 
     // Blink the RGB LED to represent the current digit
     for (int j = 0; j < blinkCount; j++) {
-      setColor(random(256), random(256), random(256)); // Set a random color
-      delay(500);                                      // Blink duration
+      setColor(red, green, blue);
+      delay(500);
       turnOffLED();
-      delay(500); // Delay between blinks
-    }
-
-    // If it's not the last digit, differentiate with a pause and a different
-    // color
-    if (i < str.length() - 1) {
-      turnOffLED();
-      delay(1000); // Pause between digits
-      setColor(random(256), random(256),
-               random(256)); // Set a different random color
-      delay(1000);           // Pause between digits
-      turnOffLED();
+      delay(500);
     }
   }
 }

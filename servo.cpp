@@ -1,5 +1,4 @@
 #include "servo.h"
-#include <Arduino.h>
 
 int SWITCH_ON_SERVO_ANGLE = 145;
 int SWITCH_OFF_SERVO_ANGLE = 20;
