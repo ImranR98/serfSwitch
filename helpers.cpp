@@ -19,17 +19,10 @@ String generateRandomNumString(int length) {
 }
 
 String generateUUID() {
-  uint32_t uuid_part1 = random(0xFFFFFFFF);
-  uint32_t uuid_part2 = random(0xFFFFFFFF);
-  char uuidBuffer[37];
-  snprintf(
-    uuidBuffer, sizeof(uuidBuffer),
-    "%08lX-%04lX-%04lX-%04lX-%08lX",
-    (uuid_part1 >> 32),
-    (uuid_part1 >> 16) & 0xFFFF,
-    uuid_part1 & 0xFFFF,
-    (uuid_part2 >> 16) & 0xFFFF,
-    uuid_part2 & 0xFFFF
-  );
-  return String(uuidBuffer);
+  char uuidString[37];
+  snprintf(uuidString, sizeof(uuidString),
+           "%04X%04X-%04X-%04X-%04X-%04X%04X%04X", random(0xFFFF),
+           random(0xFFFF), random(0xFFFF), random(0xFFFF), random(0xFFFF),
+           random(0xFFFF), random(0xFFFF), random(0xFFFF));
+  return String(uuidString);
 }
