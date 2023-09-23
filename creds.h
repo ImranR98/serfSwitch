@@ -1,0 +1,5 @@
+#define WIFI_SSID_STR ""
+#define WIFI_PASSWORD_STR ""
+#define MQTT_SERVER_STR ""
+#define MQTT_USERNAME_STR ""
+#define MQTT_PASSWORD_STR ""
