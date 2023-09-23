@@ -1,3 +1,7 @@
+#include "creds.h"
+#include "helpers.h"
+#include "rgb.h"
+#include "servo.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -5,9 +9,12 @@
 #include <MQTT.h>
 #include <WiFiClientSecure.h>
 
-#include "helpers.h"
-#include "rgb.h"
-#include "servo.h"
+// Switch config defaults (define these in creds.h)
+const char *WIFI_SSID_DEFAULT = WIFI_SSID_STR;
+const char *WIFI_PASSWORD_DEFAULT = WIFI_PASSWORD_STR;
+const char *MQTT_SERVER_DEFAULT = MQTT_SERVER_STR;
+const char *MQTT_USERNAME_DEFAULT = MQTT_USERNAME_STR;
+const char *MQTT_PASSWORD_DEFAULT = MQTT_PASSWORD_STR;
 
 // Variable inits
 const int TOGGLE_BUTTON_PIN = D5;
@@ -97,12 +104,12 @@ void printFullReadableSwitchConfig(const SwitchConfig &config,
   Serial.println("MQTT_PASSWORD:              " + String(config.MQTT_PASSWORD));
   Serial.println("CONFIG_CODE:                " + String(CONFIG_CODE));
 }
-void clearSwitchConfigEditable(SwitchConfig &config) {
-  strcpy(SWITCH_CONFIG.WIFI_SSID, "");
-  strcpy(SWITCH_CONFIG.WIFI_PASSWORD, "");
-  strcpy(SWITCH_CONFIG.MQTT_SERVER, "");
-  strcpy(SWITCH_CONFIG.MQTT_USERNAME, "");
-  strcpy(SWITCH_CONFIG.MQTT_PASSWORD, "");
+void resetSwitchConfigEditable(SwitchConfig &config) {
+  strcpy(SWITCH_CONFIG.WIFI_SSID, WIFI_SSID_DEFAULT);
+  strcpy(SWITCH_CONFIG.WIFI_PASSWORD, WIFI_PASSWORD_DEFAULT);
+  strcpy(SWITCH_CONFIG.MQTT_SERVER, MQTT_SERVER_DEFAULT);
+  strcpy(SWITCH_CONFIG.MQTT_USERNAME, MQTT_USERNAME_DEFAULT);
+  strcpy(SWITCH_CONFIG.MQTT_PASSWORD, MQTT_PASSWORD_DEFAULT);
 }
 bool isSwitchConfigValid() {
   return !String(SWITCH_CONFIG.SWITCH_ID).isEmpty() &&
@@ -120,14 +127,20 @@ class configBLECallbacks : public BLECharacteristicCallbacks {
     String value = String((pCharacteristic->getValue()).c_str());
     Serial.println("Got a BLE config update with value: " + value);
     value = bleCommandChunks + value;
-    int validityCode = checkSwitchConfigFromBLE(value, SWITCH_CONFIG);
+    SwitchConfig newConfig;
+    strcpy(newConfig.SWITCH_ID, SWITCH_CONFIG.SWITCH_ID);
+    strcpy(newConfig.BLUETOOTH_UUID, SWITCH_CONFIG.BLUETOOTH_UUID);
+    strcpy(newConfig.CONFIG_CHARACTERISTIC_UUID,
+           SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID);
+    strcpy(newConfig.STATE_CHARACTERISTIC_UUID,
+           SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID);
+    int validityCode = checkSwitchConfigFromBLE(value, newConfig);
     if (validityCode == 0) {
       Serial.println("BLE config updated.");
-      EEPROM.put(0, SWITCH_CONFIG);
+      EEPROM.put(0, newConfig);
       EEPROM.commit();
       ESP.restart();
     } else {
-      clearSwitchConfigEditable(SWITCH_CONFIG);
       bleCommandChunks = value;
       pCharacteristic->setValue(
           std::string(getSwitchConfigForBLE(SWITCH_CONFIG).c_str()));
@@ -233,12 +246,10 @@ void setup() {
     WiFi.begin(SWITCH_CONFIG.WIFI_SSID, SWITCH_CONFIG.WIFI_PASSWORD);
     MQTT.begin(SWITCH_CONFIG.MQTT_SERVER, 8883, NET);
     MQTT.onMessage(messageReceived);
-
     connect();
-
     MQTT.publish(CONFIG_TOPIC, INTRODUCTION_PAYLOAD, true, 1);
   } else {
-    clearSwitchConfigEditable(SWITCH_CONFIG);
+    resetSwitchConfigEditable(SWITCH_CONFIG);
     EEPROM.put(0, SWITCH_CONFIG);
     EEPROM.commit();
   }
@@ -263,7 +274,7 @@ void setup() {
   BLE_CHAR_SWITCH_STATE = BLE_SERVICE->createCharacteristic(
       SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  BLE_CHAR_SWITCH_STATE->setValue(std::string("OFF"));
+  BLE_CHAR_SWITCH_STATE->setValue(SWITCH_STATE ? "ON" : "OFF");
   BLE_CHAR_SWITCH_STATE->setCallbacks(new stateBLECallbacks());
   BLEDescriptor BLE_DESC_SWITCH_STATE("e4434660-c224-42d2-bb77-e8de539b738d");
   BLE_DESC_SWITCH_STATE.setValue("Switch State (ON/OFF)");
@@ -316,7 +327,7 @@ void messageReceived(String &topic, String &payload) {
     }
   }
   flipSwitch(state == "ON");
-  BLE_CHAR_SWITCH_STATE->setValue(state == "ON" ? "ON" : "OFF");
+  BLE_CHAR_SWITCH_STATE->setValue(SWITCH_STATE ? "ON" : "OFF");
 
   // Note: Do not use the client in the callback to publish, subscribe or
   // unsubscribe as it may cause deadlocks when other things arrive while
