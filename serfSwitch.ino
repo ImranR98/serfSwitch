@@ -64,16 +64,16 @@ String getSwitchConfigForBLE(const SwitchConfig &config) {
          "'WIFI_SSID|WIFI_PASSWORD|MQTT_SERVER|MQTT_USERNAME|MQTT_PASSWORD|"
          "CONFIG_(STARTUP_BLINK)_CODE'";
 }
-bool checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
+int checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
   char configCode[CONFIG_CODE_LENGTH + 1];
   int count = sscanf(serialized.c_str(), "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%s",
                      config.WIFI_SSID, config.WIFI_PASSWORD, config.MQTT_SERVER,
                      config.MQTT_USERNAME, config.MQTT_PASSWORD, configCode);
-  if (!String(configCode).equals(CONFIG_CODE)) {
-    Serial.println("Got a command with config code " + String(configCode) +
-                   " but the real code is " + CONFIG_CODE + "!");
-  }
-  return count == 6 && String(configCode).equals(CONFIG_CODE);
+  return (count != 6 ||
+          String(configCode).length() != CONFIG_CODE_LENGTH)
+             ? 1
+         : !(String(configCode).equals(CONFIG_CODE)) ? 2
+                                                     : 0;
 }
 void printFullReadableSwitchConfig(const SwitchConfig &config,
                                    bool idIsNew = false, bool blIdIsNew = false,
@@ -116,18 +116,27 @@ bool isSwitchConfigValid() {
 }
 
 // BLE callback for configuration - save new config if valid and restart
+String bleCommandChunks = ""; // Long commands come in multiple callbacks
 class configBLECallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
-    Serial.println("Got a BLE config update!");
     String value = String((pCharacteristic->getValue()).c_str());
-    bool isValid = checkSwitchConfigFromBLE(value, SWITCH_CONFIG);
-    if (isValid) {
+    Serial.println("Got a BLE config update with value: " + value);
+    value = bleCommandChunks + value;
+    int validityCode = checkSwitchConfigFromBLE(value, SWITCH_CONFIG);
+    if (validityCode == 0) {
+      Serial.println("BLE config updated.");
       EEPROM.put(0, SWITCH_CONFIG);
       EEPROM.commit();
       ESP.restart();
     } else {
+      clearSwitchConfigEditable(SWITCH_CONFIG);
+      bleCommandChunks = value;
       pCharacteristic->setValue(
           std::string(getSwitchConfigForBLE(SWITCH_CONFIG).c_str()));
+      if (validityCode == 2) { // Full command, wrong code
+        bleCommandChunks = "";
+        Serial.println("BLE config command ignored - incorrect config code!");
+      }
     }
   }
 };
@@ -136,6 +145,7 @@ class configBLECallbacks : public BLECharacteristicCallbacks {
 class stateBLECallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     String value = String((pCharacteristic->getValue()).c_str());
+    Serial.println("Got BLE state update with value: " + value);
     messageReceived(COMMAND_TOPIC, value);
   }
 };
@@ -164,15 +174,20 @@ void setup() {
     NEW_ID_WAS_GENERATED = true;
   }
   if (!isValidUUID(SWITCH_CONFIG.BLUETOOTH_UUID)) {
-    strcpy(SWITCH_CONFIG.BLUETOOTH_UUID, generateUUID().c_str());
+    strcpy(SWITCH_CONFIG.BLUETOOTH_UUID,
+           "091AC3FB-CF49-BF3D-F6B3-548BED0E7D87"); // Unlear whether UUIDs must
+                                                    // be unique per-switch;
+                                                    // hardcoded for now
     BLUETOOTH_UUID_WAS_GENERATED = true;
   }
   if (!isValidUUID(SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID)) {
-    strcpy(SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID, generateUUID().c_str());
+    strcpy(SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID,
+           "1726868D-DC3B-3CDA-273F-CAE3BF8B38B8");
     CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED = true;
   }
   if (!isValidUUID(SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID)) {
-    strcpy(SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID, generateUUID().c_str());
+    strcpy(SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID,
+           "8D174CEE-AF11-E67F-12A7-97AD21DB1528");
     STATE_CHARACTERISTIC_UUID_WAS_GENERATED = true;
   }
   if (NEW_ID_WAS_GENERATED || BLUETOOTH_UUID_WAS_GENERATED ||
@@ -231,6 +246,7 @@ void setup() {
 
   // Initialize Bluetooth with callback
   BLEDevice::init(std::string(SWITCH_NAME.c_str()));
+  BLEDevice::setMTU(65536);
   BLE_SERVER = BLEDevice::createServer();
   BLE_SERVICE =
       BLE_SERVER->createService(std::string(SWITCH_CONFIG.BLUETOOTH_UUID));
@@ -241,12 +257,18 @@ void setup() {
   BLE_CHAR_SWITCH_CONFIG->setValue(
       std::string(getSwitchConfigForBLE(SWITCH_CONFIG).c_str()));
   BLE_CHAR_SWITCH_CONFIG->setCallbacks(new configBLECallbacks());
+  BLEDescriptor BLE_DESC_SWITCH_CONFIG("5f0ef68d-7dff-4af0-b561-4f3271a1f782");
+  BLE_DESC_SWITCH_CONFIG.setValue("Switch Configuration String");
+  BLE_CHAR_SWITCH_CONFIG->addDescriptor(&BLE_DESC_SWITCH_CONFIG);
 
   BLE_CHAR_SWITCH_STATE = BLE_SERVICE->createCharacteristic(
       SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
   BLE_CHAR_SWITCH_STATE->setValue(std::string("OFF"));
-  BLE_CHAR_SWITCH_CONFIG->setCallbacks(new stateBLECallbacks());
+  BLE_CHAR_SWITCH_STATE->setCallbacks(new stateBLECallbacks());
+  BLEDescriptor BLE_DESC_SWITCH_STATE("e4434660-c224-42d2-bb77-e8de539b738d");
+  BLE_DESC_SWITCH_STATE.setValue("Switch State (ON/OFF)");
+  BLE_CHAR_SWITCH_STATE->addDescriptor(&BLE_DESC_SWITCH_STATE);
 
   BLE_SERVICE->start();
   BLE_ADVERTISING = BLE_SERVER->getAdvertising();
