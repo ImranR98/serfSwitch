@@ -112,7 +112,7 @@ void setup() {
   pinMode(RGB_LED_GREEN, OUTPUT);
   pinMode(RGB_LED_BLUE, OUTPUT);
   pinMode(TOGGLE_BUTTON_PIN, INPUT_PULLUP);
-  EEPROM.begin(512);
+  EEPROM.begin(1024);
 
   delay(5000); // For debugging - give me time to switch to serial monitor
 
