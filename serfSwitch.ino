@@ -29,7 +29,6 @@ String CONFIG_CODE = generateRandomNumString(CONFIG_CODE_LENGTH);
 bool NEW_ID_WAS_GENERATED = false;
 bool BLUETOOTH_UUID_WAS_GENERATED = false;
 bool CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED = false;
-bool STATE_CHARACTERISTIC_UUID_WAS_GENERATED = false;
 
 // Define switch configuration struct
 struct SwitchConfig {
@@ -55,18 +54,10 @@ SwitchConfig SWITCH_CONFIG;
 BLEServer *BLE_SERVER;
 BLEService *BLE_SERVICE;
 BLECharacteristic *BLE_CHAR_SWITCH_CONFIG;
-BLECharacteristic *BLE_CHAR_SWITCH_STATE;
 BLEAdvertising *BLE_ADVERTISING;
 
 // Switch config helper funcs
 String getSwitchConfigForBLE(const SwitchConfig &config) {
-  // String serialized = "";
-  // serialized += String(config.WIFI_SSID) + "|";
-  // serialized += String(config.WIFI_PASSWORD) + "|";
-  // serialized += String(config.MQTT_SERVER) + "|";
-  // serialized += String(config.MQTT_USERNAME) + "|";
-  // serialized += String(config.MQTT_PASSWORD) + "|CONFIG_CODE_HERE";
-  // return serialized;
   return "Change this to: "
          "'WIFI_SSID|WIFI_PASSWORD|MQTT_SERVER|MQTT_USERNAME|MQTT_PASSWORD|"
          "CONFIG_(STARTUP_BLINK)_CODE'";
@@ -94,9 +85,6 @@ void printFullReadableSwitchConfig(const SwitchConfig &config,
   Serial.println("CONFIG_CHARACTERISTIC_UUID: " +
                  String(config.CONFIG_CHARACTERISTIC_UUID) +
                  String(blCharIsNew ? " (NEWLY GENERATED)" : ""));
-  Serial.println("STATE_CHARACTERISTIC_UUID:  " +
-                 String(config.STATE_CHARACTERISTIC_UUID) +
-                 String(stIdIsNew ? " (NEWLY GENERATED)" : ""));
   Serial.println("WIFI_SSID:                  " + String(config.WIFI_SSID));
   Serial.println("WIFI_PASSWORD:              " + String(config.WIFI_PASSWORD));
   Serial.println("MQTT_SERVER:                " + String(config.MQTT_SERVER));
@@ -132,8 +120,6 @@ class configBLECallbacks : public BLECharacteristicCallbacks {
     strcpy(newConfig.BLUETOOTH_UUID, SWITCH_CONFIG.BLUETOOTH_UUID);
     strcpy(newConfig.CONFIG_CHARACTERISTIC_UUID,
            SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID);
-    strcpy(newConfig.STATE_CHARACTERISTIC_UUID,
-           SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID);
     int validityCode = checkSwitchConfigFromBLE(value, newConfig);
     if (validityCode == 0) {
       Serial.println("BLE config updated.");
@@ -157,7 +143,13 @@ class stateBLECallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     String value = String((pCharacteristic->getValue()).c_str());
     Serial.println("Got BLE state update with value: " + value);
-    messageReceived(COMMAND_TOPIC, value);
+    String state;
+    int angle;
+    parseFlipCommand(value, state, angle);
+    if (value.indexOf(state + " ") == 0 &&
+        SWITCH_STATE != (state == "ON")) { // Prevent repeats
+      flipSwitch(state == "ON");
+    }
   }
 };
 
@@ -196,21 +188,14 @@ void setup() {
            "1726868D-DC3B-3CDA-273F-CAE3BF8B38B8");
     CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED = true;
   }
-  if (!isValidUUID(SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID)) {
-    strcpy(SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID,
-           "8D174CEE-AF11-E67F-12A7-97AD21DB1528");
-    STATE_CHARACTERISTIC_UUID_WAS_GENERATED = true;
-  }
   if (NEW_ID_WAS_GENERATED || BLUETOOTH_UUID_WAS_GENERATED ||
-      CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED ||
-      STATE_CHARACTERISTIC_UUID_WAS_GENERATED) {
+      CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED) {
     EEPROM.put(0, SWITCH_CONFIG);
     EEPROM.commit();
   }
   printFullReadableSwitchConfig(SWITCH_CONFIG, NEW_ID_WAS_GENERATED,
                                 BLUETOOTH_UUID_WAS_GENERATED,
-                                CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED,
-                                STATE_CHARACTERISTIC_UUID_WAS_GENERATED);
+                                CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED);
 
   // Initialize all remaining variables using the switch ID
   SWITCH_NAME = "Switch-" + String(SWITCH_CONFIG.SWITCH_ID);
@@ -271,15 +256,6 @@ void setup() {
   BLE_DESC_SWITCH_CONFIG.setValue("Switch Configuration String");
   BLE_CHAR_SWITCH_CONFIG->addDescriptor(&BLE_DESC_SWITCH_CONFIG);
 
-  BLE_CHAR_SWITCH_STATE = BLE_SERVICE->createCharacteristic(
-      SWITCH_CONFIG.STATE_CHARACTERISTIC_UUID,
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-  BLE_CHAR_SWITCH_STATE->setValue(SWITCH_STATE ? "ON" : "OFF");
-  BLE_CHAR_SWITCH_STATE->setCallbacks(new stateBLECallbacks());
-  BLEDescriptor BLE_DESC_SWITCH_STATE("e4434660-c224-42d2-bb77-e8de539b738d");
-  BLE_DESC_SWITCH_STATE.setValue("Switch State (ON/OFF)");
-  BLE_CHAR_SWITCH_STATE->addDescriptor(&BLE_DESC_SWITCH_STATE);
-
   BLE_SERVICE->start();
   BLE_ADVERTISING = BLE_SERVER->getAdvertising();
   BLE_ADVERTISING->start();
@@ -327,7 +303,6 @@ void messageReceived(String &topic, String &payload) {
     }
   }
   flipSwitch(state == "ON");
-  BLE_CHAR_SWITCH_STATE->setValue(SWITCH_STATE ? "ON" : "OFF");
 
   // Note: Do not use the client in the callback to publish, subscribe or
   // unsubscribe as it may cause deadlocks when other things arrive while
