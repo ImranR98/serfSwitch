@@ -46,9 +46,6 @@ void blinkRGBCode(String str) {
     long red = i % 2 == 0 ? 0 : 255;
     long green = i % 2 == 0 ? 255 : 0;
     long blue = 0;
-    Serial.println("Digit: " + String(digit) +
-                   " Blinks: " + String(blinkCount) + " RGB: " + String(red) +
-                   " " + String(green) + " " + String(blue));
     delay(1500);
     for (int j = 0; j < blinkCount; j++) {
       fadeInRGB(0, 0, 0, red, green, blue, 2);

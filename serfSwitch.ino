@@ -62,15 +62,15 @@ bool deserializeSwitchConfigEditable(const String &serialized,
 }
 void printFullReadableSwitchConfig(const SwitchConfig &config, bool idIsNew = false) {
   Serial.println("Full Switch Configuration (" + String((isSwitchConfigValid() ? "" : "not ")) + "valid):");
-  Serial.println("" + config.SWITCH_ID + (idIsNew ? "(NEWLY GENERATED)" : ""));
-  Serial.println("" + config.BLUETOOTH_UUID);
-  Serial.println("" + config.CONFIG_CHARACTERISTIC_UUID);
-  Serial.println("" + config.WIFI_SSID);
-  Serial.println("" + config.WIFI_PASSWORD);
-  Serial.println("" + config.MQTT_SERVER);
-  Serial.println("" + config.MQTT_USERNAME);
-  Serial.println("" + config.MQTT_PASSWORD);
-  Serial.println("" + config.CONFIG_CODE);
+  Serial.println("SWITCH_ID" + String(idIsNew ? " (NEWLY GENERATED)" : "                  ") + ": " + config.SWITCH_ID );
+  Serial.println("BLUETOOTH_UUID:              " + config.BLUETOOTH_UUID);
+  Serial.println("CONFIG_CHARACTERISTIC_UUID:  " + config.CONFIG_CHARACTERISTIC_UUID);
+  Serial.println("WIFI_SSID:                   " + config.WIFI_SSID);
+  Serial.println("WIFI_PASSWORD:               " + config.WIFI_PASSWORD);
+  Serial.println("MQTT_SERVER:                 " + config.MQTT_SERVER);
+  Serial.println("MQTT_USERNAME:               " + config.MQTT_USERNAME);
+  Serial.println("MQTT_PASSWORD:               " + config.MQTT_PASSWORD);
+  Serial.println("CONFIG_CODE:                 " + config.CONFIG_CODE);
 }
 void clearSwitchConfigEditable(SwitchConfig &config) {
   switchConfig.WIFI_SSID="";
