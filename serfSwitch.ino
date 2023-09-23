@@ -53,13 +53,16 @@ BLEAdvertising *BLE_ADVERTISING;
 
 // Switch config helper funcs
 String getSwitchConfigForBLE(const SwitchConfig &config) {
-  String serialized = "";
-  serialized += String(config.WIFI_SSID) + "|";
-  serialized += String(config.WIFI_PASSWORD) + "|";
-  serialized += String(config.MQTT_SERVER) + "|";
-  serialized += String(config.MQTT_USERNAME) + "|";
-  serialized += String(config.MQTT_PASSWORD) + "|CONFIG_CODE_HERE";
-  return serialized;
+  // String serialized = "";
+  // serialized += String(config.WIFI_SSID) + "|";
+  // serialized += String(config.WIFI_PASSWORD) + "|";
+  // serialized += String(config.MQTT_SERVER) + "|";
+  // serialized += String(config.MQTT_USERNAME) + "|";
+  // serialized += String(config.MQTT_PASSWORD) + "|CONFIG_CODE_HERE";
+  // return serialized;
+  return "Change this to: "
+         "'WIFI_SSID|WIFI_PASSWORD|MQTT_SERVER|MQTT_USERNAME|MQTT_PASSWORD|"
+         "CONFIG_(STARTUP_BLINK)_CODE'";
 }
 bool checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
   char configCode[CONFIG_CODE_LENGTH + 1];
@@ -115,6 +118,7 @@ bool isSwitchConfigValid() {
 // BLE callback for configuration - save new config if valid and restart
 class configBLECallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
+    Serial.println("Got a BLE config update!");
     String value = String((pCharacteristic->getValue()).c_str());
     bool isValid = checkSwitchConfigFromBLE(value, SWITCH_CONFIG);
     if (isValid) {
