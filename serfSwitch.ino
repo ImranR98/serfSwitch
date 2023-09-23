@@ -276,7 +276,7 @@ void setup() {
 
 // Connect to WiFi, then MQTT server, then subscribe to the 'flip' topic
 void connect() {
-  setRGB(128, 0, 0);
+  setRGB(32, 0, 0);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.println("Connecting to WiFi...");
     delay(2000);
@@ -293,7 +293,9 @@ void connect() {
   }
 
   MQTT.subscribe(COMMAND_TOPIC);
-  setRGB(0, 0, 0);
+  fadeInRGB(32, 0, 0, 255, 255, 255, 2);
+  delay(60);
+  fadeInRGB(255, 255, 255, 0, 0, 0, 1);
   Serial.println("Ready!");
 }
 
