@@ -24,7 +24,7 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 ## Usage
 
 0. Setup the Arduino IDE with the [ESP32](https://github.com/espressif/arduino-esp32) and [MQTT](https://www.arduino.cc/reference/en/libraries/mqtt/) libraries (on Linux, you may need to add `SUBSYSTEMS=="usb", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0070", MODE:="0666"` to `/etc/udev/rules.d/60-arduino-esp32.rules`).
-1. Copy `creds.template.h` to `creds.h` and fill it out.
+1. Fill in `creds.h` if you want to (if not, you'll need to configure connection settings via Bluetooth).
 2. Strip a centimeter or so of insulation off each of the three wires of the servo (power, ground, control).
 3. Do the same for 3 wires that end in female jumper pins. Coordinating colour with the 3 servo wires is recommended.
 4. Manually twist the exposed end of the power wire from the servo motor with a corresponding female jumper wire for a loose attachment.
@@ -44,36 +44,10 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
     - Using a male-male wire, connect the `VBUS`-attached pin of the USB-powered switch to the `VIN`-attached (power) pin on the second switch.
     - Do the same to connect the `GND`-attached pins of both switches.
     - Due to power constraints, only 1 switch can be attached in this way.
+13. After the board is plugged in, it should automatically connect to the configured MQTT server. If you did not put configuration variables in `creds.h`, you can use a Bluetooth LE scanner app to configure the switch via Bluetooth (as instructed in the Bluetooth characteristic). The blinking lights you see on boot represent a 6 digit code you will need to include when configuring the switch.
 
 ## Result
 
 Hey, I never said it was pretty.
 
 ![result.png](result.png)
-
-## Potential Improvements
-
-- Use a cheaper ESP32 board instead of the Arduino (the Arduino IDE and language should still be usable - it isn't clear if code changes would be needed).
-- Use a board without header pins soldered on.
-- Make use of a push button for manual control.
-- Design and 3D print a housing (neater and better looking than the current system).
-- See if the board can be put into sleep mode for 5-10 seconds between syncs to save power. This will result in less responsiveness but it's a decent compromise if it makes a [battery powered solution](https://www.amazon.ca/dp/B076TFJBHW) more viable. The current system only lasts about 20 hours when powered by [high-capacity 9v batteries](https://www.amazon.ca/dp/B018N7YZL6).
-
-## TODO
-
-- Instead of hardcoding WiFi and MQTT Server info, the device should be configurable via bluetooth
-- This is easy enough to do on its own (just enable Bluetooth, listen for serial messages, and use any Bluetooth serial app on your phone)
-  - You send a message containing that info in a predefined format, and the device saves that to EEPROM (so it persists between reboots)
-- The problem is authentication - making sure you can only configure the device if you have physical access to it
-  - This could be solved using a 6 digit code that is generated when the device boots
-  - This code is communicated to the user via the RGB LED
-    - For example, '553 126' would be "RED blinks 5 times, BLUE blinks 5 times, GREEN blinks 3 times, RED blinks once, and so on..."
-    - While inconvenient, the user would only have to deal with this when configuring the device which would not happen often
-    - Then, any bluetooth communication that doesn't include the code would be ignored
-- So:
-  1. Add code to read/write config data from the EEPROM
-  2. Add code to connect to bluetooth and read serial communication
-  3. Add code that parses bluetooth input and sends it to be saved
-  4. Structure all this so it works as intended. Remember:
-     - If there is no config saved (as on first boot), do not try to connect to anything - just wait for bluetooth config to come in
-     - If the config is changed, apply those changes immediately instead of just saving to EEPROM and waiting for a reboot
