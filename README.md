@@ -50,4 +50,4 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 
 Hey, I never said it was pretty.
 
-![result.png](result.png)
+![result.jpeg](result.jpeg)
