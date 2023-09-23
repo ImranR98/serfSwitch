@@ -6,7 +6,7 @@ void setRGB(int redValue, int greenValue, int blueValue) {
   analogWrite(RGB_LED_BLUE, 255 - blueValue);
 }
 
-void turnOffRGB() { setColor(0, 0, 0); }
+void turnOffRGB() { setRGB(0, 0, 0); }
 
 void fadeInRGB(int red, int green, int blue, int redEnd, int greenEnd,
                int blueEnd, int loopDelay) {
@@ -29,16 +29,16 @@ void fadeInRGB(int red, int green, int blue, int redEnd, int greenEnd,
       blueRev ? blue-- : blue++;
       complete = false;
     }
-    setColor(red, green, blue);
+    setRGB(red, green, blue);
     delay(loopDelay);
   }
 }
 
-void blinkRGB(String str) {
+void blinkRGBCode(String str) {
   fadeInRGB(0, 0, 0, 0, 0, 255, 10);
-  setColor(0, 255, 255);
+  setRGB(0, 255, 255);
   delay(30);
-  turnOffLED();
+  turnOffRGB();
   delay(500);
   for (int i = 0; i < str.length(); i++) {
     char digit = str.charAt(i);
