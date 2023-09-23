@@ -72,19 +72,15 @@ int checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
                                                                            : 0;
 }
 void printFullReadableSwitchConfig(const SwitchConfig &config,
-                                   bool idIsNew = false, bool blIdIsNew = false,
-                                   bool stIdIsNew = false,
-                                   bool blCharIsNew = false) {
+                                   bool idIsNew = false) {
   Serial.println("Full Switch Configuration (" +
                  String((isSwitchConfigValid() ? "" : "not ")) + "valid):");
   Serial.println("SWITCH_ID:                  " + String(config.SWITCH_ID) +
                  String(idIsNew ? " (NEWLY GENERATED)" : ""));
-  Serial.println(
-      "BLUETOOTH_UUID:             " + String(config.BLUETOOTH_UUID) +
-      String(blIdIsNew ? " (NEWLY GENERATED)" : ""));
+  Serial.println("BLUETOOTH_UUID:             " +
+                 String(config.BLUETOOTH_UUID));
   Serial.println("CONFIG_CHARACTERISTIC_UUID: " +
-                 String(config.CONFIG_CHARACTERISTIC_UUID) +
-                 String(blCharIsNew ? " (NEWLY GENERATED)" : ""));
+                 String(config.CONFIG_CHARACTERISTIC_UUID));
   Serial.println("WIFI_SSID:                  " + String(config.WIFI_SSID));
   Serial.println("WIFI_PASSWORD:              " + String(config.WIFI_PASSWORD));
   Serial.println("MQTT_SERVER:                " + String(config.MQTT_SERVER));
@@ -174,28 +170,26 @@ void setup() {
   if (String(SWITCH_CONFIG.SWITCH_ID).length() != SWITCH_ID_LENGTH) {
     strcpy(SWITCH_CONFIG.SWITCH_ID,
            generateRandomString(SWITCH_ID_LENGTH).c_str());
+    resetSwitchConfigEditable(SWITCH_CONFIG);
+    EEPROM.put(0, SWITCH_CONFIG);
+    EEPROM.commit();
     NEW_ID_WAS_GENERATED = true;
   }
   if (!isValidUUID(SWITCH_CONFIG.BLUETOOTH_UUID)) {
     strcpy(SWITCH_CONFIG.BLUETOOTH_UUID,
            "091AC3FB-CF49-BF3D-F6B3-548BED0E7D87"); // Unlear whether UUIDs must
-                                                    // be unique per-switch;
-                                                    // hardcoded for now
-    BLUETOOTH_UUID_WAS_GENERATED = true;
+    // be unique per-switch;
+    // hardcoded for now
+    EEPROM.put(0, SWITCH_CONFIG);
+    EEPROM.commit();
   }
   if (!isValidUUID(SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID)) {
     strcpy(SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID,
            "1726868D-DC3B-3CDA-273F-CAE3BF8B38B8");
-    CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED = true;
-  }
-  if (NEW_ID_WAS_GENERATED || BLUETOOTH_UUID_WAS_GENERATED ||
-      CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED) {
     EEPROM.put(0, SWITCH_CONFIG);
     EEPROM.commit();
   }
-  printFullReadableSwitchConfig(SWITCH_CONFIG, NEW_ID_WAS_GENERATED,
-                                BLUETOOTH_UUID_WAS_GENERATED,
-                                CONFIG_CHARACTERISTIC_UUID_WAS_GENERATED);
+  printFullReadableSwitchConfig(SWITCH_CONFIG, NEW_ID_WAS_GENERATED);
 
   // Initialize all remaining variables using the switch ID
   SWITCH_NAME = "Switch-" + String(SWITCH_CONFIG.SWITCH_ID);
