@@ -230,7 +230,8 @@ void setup() {
   // Initialize Bluetooth with callback
   BLEDevice::init(std::string(SWITCH_NAME.c_str()));
   BLE_SERVER = BLEDevice::createServer();
-  BLE_SERVICE = BLE_SERVER->createService(std::string(SWITCH_CONFIG.BLUETOOTH_UUID));
+  BLE_SERVICE =
+      BLE_SERVER->createService(std::string(SWITCH_CONFIG.BLUETOOTH_UUID));
 
   BLE_CHAR_SWITCH_CONFIG = BLE_SERVICE->createCharacteristic(
       SWITCH_CONFIG.CONFIG_CHARACTERISTIC_UUID,
@@ -308,20 +309,15 @@ void loop() {
       Serial.println("Lost connection...");
       connect();
     }
-
-    if ((millis() - LAST_BUTTON_PUSH_TIME) > BUTTON_DEBOUNCE_DELAY) {
-      if (!digitalRead(TOGGLE_BUTTON_PIN)) {
-        LAST_BUTTON_PUSH_TIME = millis();
-        flipSwitch(!SWITCH_STATE);
-      }
+  }
+  if ((millis() - LAST_BUTTON_PUSH_TIME) > BUTTON_DEBOUNCE_DELAY) {
+    if (!digitalRead(TOGGLE_BUTTON_PIN)) {
+      LAST_BUTTON_PUSH_TIME = millis();
+      flipSwitch(!SWITCH_STATE);
     }
-
-    if (PENDING_STATE_UPDATE) {
-      MQTT.publish(STATE_TOPIC, SWITCH_STATE ? "ON" : "OFF");
-      PENDING_STATE_UPDATE = false;
-    }
-  } else {
-    blinkRGBCode(SWITCH_CONFIG.CONFIG_CODE);
-    delay(5000);
+  }
+  if (PENDING_STATE_UPDATE) {
+    MQTT.publish(STATE_TOPIC, SWITCH_STATE ? "ON" : "OFF");
+    PENDING_STATE_UPDATE = false;
   }
 }
