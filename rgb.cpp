@@ -39,7 +39,7 @@ void blinkRGBCode(String str) {
   setRGB(0, 255, 255);
   delay(30);
   turnOffRGB();
-  delay(500);
+  delay(300);
   for (int i = 0; i < str.length(); i++) {
     char digit = str.charAt(i);
     int blinkCount = digit - '0'; // Convert the character to an integer
@@ -48,10 +48,9 @@ void blinkRGBCode(String str) {
     long blue = 0;
     delay(1500);
     for (int j = 0; j < blinkCount; j++) {
-      fadeInRGB(0, 0, 0, red, green, blue, 2);
-      delay(700);
+      fadeInRGB(0, 0, 0, red, green, blue, 1);
       fadeInRGB(red, green, blue, 0, 0, 0, 2);
-      delay(300);
     }
   }
+  delay(300);
 }

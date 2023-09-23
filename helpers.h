@@ -6,5 +6,6 @@
 String generateRandomString(int length);
 String generateRandomNumString(int length);
 String generateUUID();
+bool isValidUUID(String uuidStr);
 
 #endif
