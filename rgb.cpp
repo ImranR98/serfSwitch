@@ -34,11 +34,21 @@ void fadeInRGB(int red, int green, int blue, int redEnd, int greenEnd,
   }
 }
 
+void blueFlick(bool reverse = false) {
+  if (!reverse) {
+    fadeInRGB(0, 0, 0, 0, 0, 255, 10);
+    setRGB(0, 255, 255);
+    delay(30);
+    turnOffRGB();
+  } else {
+    setRGB(0, 255, 255);
+    delay(30);
+    fadeInRGB(0, 0, 255, 0, 0, 0, 10);
+  }
+}
+
 void blinkRGBCode(String str) {
-  fadeInRGB(0, 0, 0, 0, 0, 255, 10);
-  setRGB(0, 255, 255);
-  delay(30);
-  turnOffRGB();
+  blueFlick();
   delay(300);
   for (int i = 0; i < str.length(); i++) {
     char digit = str.charAt(i);
@@ -48,9 +58,10 @@ void blinkRGBCode(String str) {
     long blue = 0;
     delay(1500);
     for (int j = 0; j < blinkCount; j++) {
-      fadeInRGB(0, 0, 0, red, green, blue, 1);
+      // fadeInRGB(0, 0, 0, red, green, blue, 1);
       fadeInRGB(red, green, blue, 0, 0, 0, 2);
     }
   }
   delay(300);
+  blueFlick(true);
 }

@@ -69,11 +69,9 @@ int checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
   int count = sscanf(serialized.c_str(), "%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%s",
                      config.WIFI_SSID, config.WIFI_PASSWORD, config.MQTT_SERVER,
                      config.MQTT_USERNAME, config.MQTT_PASSWORD, configCode);
-  return (count != 6 ||
-          String(configCode).length() != CONFIG_CODE_LENGTH)
-             ? 1
-         : !(String(configCode).equals(CONFIG_CODE)) ? 2
-                                                     : 0;
+  return (count != 6 || String(configCode).length() != CONFIG_CODE_LENGTH) ? 1
+         : !(String(configCode).equals(CONFIG_CODE))                       ? 2
+                                                                           : 0;
 }
 void printFullReadableSwitchConfig(const SwitchConfig &config,
                                    bool idIsNew = false, bool blIdIsNew = false,
@@ -228,6 +226,7 @@ void setup() {
 
   // Give the user their config code
   blinkRGBCode(CONFIG_CODE);
+  delay(300);
 
   // If the device has been configured, initialize WiFi and MQTT
   if (isSwitchConfigValid()) {
@@ -277,7 +276,7 @@ void setup() {
 
 // Connect to WiFi, then MQTT server, then subscribe to the 'flip' topic
 void connect() {
-  setRGB(255, 0, 0);
+  setRGB(128, 0, 0);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.println("Connecting to WiFi...");
     delay(2000);
