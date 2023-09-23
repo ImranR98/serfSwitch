@@ -84,9 +84,9 @@ void printFullReadableSwitchConfig(const SwitchConfig &config,
   Serial.println("CONFIG_CHARACTERISTIC_UUID: " +
                  String(config.CONFIG_CHARACTERISTIC_UUID) +
                  String(blCharIsNew ? " (NEWLY GENERATED)" : ""));
-  Serial.println(
-      "STATE_CHARACTERISTIC_UUID: " + String(config.STATE_CHARACTERISTIC_UUID) +
-      String(stIdIsNew ? " (NEWLY GENERATED)" : ""));
+  Serial.println("STATE_CHARACTERISTIC_UUID:  " +
+                 String(config.STATE_CHARACTERISTIC_UUID) +
+                 String(stIdIsNew ? " (NEWLY GENERATED)" : ""));
   Serial.println("WIFI_SSID:                  " + String(config.WIFI_SSID));
   Serial.println("WIFI_PASSWORD:              " + String(config.WIFI_PASSWORD));
   Serial.println("MQTT_SERVER:                " + String(config.MQTT_SERVER));
@@ -127,12 +127,7 @@ class configBLECallbacks : public BLECharacteristicCallbacks {
 class stateBLECallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     String value = String((pCharacteristic->getValue()).c_str());
-    bool isValid = deserializeSwitchConfigEditable(value, SWITCH_CONFIG);
-    if (isValid) {
-      EEPROM.put(0, SWITCH_CONFIG);
-      EEPROM.commit();
-    }
-    ESP.restart();
+    messageReceived(COMMAND_TOPIC, value);
   }
 };
 
