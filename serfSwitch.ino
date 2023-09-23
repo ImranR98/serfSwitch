@@ -124,8 +124,11 @@ class configBLECallbacks : public BLECharacteristicCallbacks {
     if (isValid) {
       EEPROM.put(0, SWITCH_CONFIG);
       EEPROM.commit();
+      ESP.restart();
+    } else {
+      pCharacteristic->setValue(
+          std::string(getSwitchConfigForBLE(SWITCH_CONFIG).c_str()));
     }
-    ESP.restart();
   }
 };
 
