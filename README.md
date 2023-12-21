@@ -24,7 +24,7 @@ Uses [MQTT](https://mqtt.org/) to integrate with [Home Assistant](https://www.ho
 ## Usage
 
 0. Setup the Arduino IDE with the [ESP32](https://github.com/espressif/arduino-esp32) and [MQTT](https://www.arduino.cc/reference/en/libraries/mqtt/) libraries (on Linux, you may need to add `SUBSYSTEMS=="usb", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0070", MODE:="0666"` to `/etc/udev/rules.d/60-arduino-esp32.rules`).
-1. Fill in `creds.h` if you want to (if not, you'll need to configure connection settings via Bluetooth).
+1. Copy `template.creds.h` to `creds.h` and fill it in if you want to (if not, you'll need to configure connection settings via Bluetooth).
 2. Strip a centimeter or so of insulation off each of the three wires of the servo (power, ground, control).
 3. Do the same for 3 wires that end in female jumper pins. Coordinating colour with the 3 servo wires is recommended.
 4. Manually twist the exposed end of the power wire from the servo motor with a corresponding female jumper wire for a loose attachment.
