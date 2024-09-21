@@ -10,11 +10,12 @@
 #include <WiFiClientSecure.h>
 
 // Switch config defaults (define these in creds.h)
-const char *WIFI_SSID_DEFAULT = WIFI_SSID_STR;
-const char *WIFI_PASSWORD_DEFAULT = WIFI_PASSWORD_STR;
-const char *MQTT_SERVER_DEFAULT = MQTT_SERVER_STR;
-const char *MQTT_USERNAME_DEFAULT = MQTT_USERNAME_STR;
-const char *MQTT_PASSWORD_DEFAULT = MQTT_PASSWORD_STR;
+const char *WIFI_SSID_DEFAULT = WIFI_SSID_STR.c_str();
+const char *WIFI_PASSWORD_DEFAULT = WIFI_PASSWORD_STR.c_str();
+const char *MQTT_SERVER_DEFAULT = MQTT_SERVER_STR.c_str();
+const char *MQTT_SERVER_PORT_DEFAULT = MQTT_SERVER_PORT.c_str();
+const char *MQTT_USERNAME_DEFAULT = MQTT_USERNAME_STR.c_str();
+const char *MQTT_PASSWORD_DEFAULT = MQTT_PASSWORD_STR.c_str();
 
 // Variable inits
 const int TOGGLE_BUTTON_PIN = D5;
@@ -23,7 +24,7 @@ WiFiClientSecure NET;
 MQTTClient MQTT(1024);
 unsigned long LAST_LOOP_TIME = 0;
 unsigned long LAST_BUTTON_PUSH_TIME = 0;
-const int SWITCH_ID_LENGTH = 6;
+const int SWITCH_ID_LENGTH = 5;
 const int CONFIG_CODE_LENGTH = 6;
 String CONFIG_CODE = generateRandomNumString(CONFIG_CODE_LENGTH);
 bool NEW_ID_WAS_GENERATED = false;
@@ -39,6 +40,7 @@ struct SwitchConfig {
   char WIFI_SSID[33];
   char WIFI_PASSWORD[65];
   char MQTT_SERVER[257];
+  char MQTT_SERVER_PORT[6];
   char MQTT_USERNAME[65];
   char MQTT_PASSWORD[65];
 };
@@ -59,7 +61,7 @@ BLEAdvertising *BLE_ADVERTISING;
 // Switch config helper funcs
 String getSwitchConfigForBLE(const SwitchConfig &config) {
   return "Change this to: "
-         "'WIFI_SSID|WIFI_PASSWORD|MQTT_SERVER|MQTT_USERNAME|MQTT_PASSWORD|"
+         "'WIFI_SSID|WIFI_PASSWORD|MQTT_SERVER|MQTT_SERVER_PORT|MQTT_USERNAME|MQTT_PASSWORD|"
          "CONFIG_(STARTUP_BLINK)_CODE'";
 }
 int checkSwitchConfigFromBLE(const String &serialized, SwitchConfig &config) {
@@ -84,6 +86,7 @@ void printFullReadableSwitchConfig(const SwitchConfig &config,
   Serial.println("WIFI_SSID:                  " + String(config.WIFI_SSID));
   Serial.println("WIFI_PASSWORD:              " + String(config.WIFI_PASSWORD));
   Serial.println("MQTT_SERVER:                " + String(config.MQTT_SERVER));
+  Serial.println("MQTT_SERVER_PORT:           " + String(config.MQTT_SERVER_PORT));
   Serial.println("MQTT_USERNAME:              " + String(config.MQTT_USERNAME));
   Serial.println("MQTT_PASSWORD:              " + String(config.MQTT_PASSWORD));
   Serial.println("CONFIG_CODE:                " + String(CONFIG_CODE));
@@ -92,12 +95,14 @@ void resetSwitchConfigEditable(SwitchConfig &config) {
   strcpy(SWITCH_CONFIG.WIFI_SSID, WIFI_SSID_DEFAULT);
   strcpy(SWITCH_CONFIG.WIFI_PASSWORD, WIFI_PASSWORD_DEFAULT);
   strcpy(SWITCH_CONFIG.MQTT_SERVER, MQTT_SERVER_DEFAULT);
+  strcpy(SWITCH_CONFIG.MQTT_SERVER_PORT, MQTT_SERVER_PORT_DEFAULT);
   strcpy(SWITCH_CONFIG.MQTT_USERNAME, MQTT_USERNAME_DEFAULT);
   strcpy(SWITCH_CONFIG.MQTT_PASSWORD, MQTT_PASSWORD_DEFAULT);
 }
 bool isSwitchConfigValid() {
   return !String(SWITCH_CONFIG.SWITCH_ID).isEmpty() &&
          !String(SWITCH_CONFIG.MQTT_SERVER).isEmpty() &&
+         !String(SWITCH_CONFIG.MQTT_SERVER_PORT).isEmpty() &&
          !String(SWITCH_CONFIG.MQTT_USERNAME).isEmpty() &&
          !String(SWITCH_CONFIG.MQTT_PASSWORD).isEmpty() &&
          !String(SWITCH_CONFIG.WIFI_SSID).isEmpty() &&
@@ -223,7 +228,7 @@ void setup() {
   // If the device has been configured, initialize WiFi and MQTT
   if (isSwitchConfigValid()) {
     WiFi.begin(SWITCH_CONFIG.WIFI_SSID, SWITCH_CONFIG.WIFI_PASSWORD);
-    MQTT.begin(SWITCH_CONFIG.MQTT_SERVER, 8883, NET);
+    MQTT.begin(SWITCH_CONFIG.MQTT_SERVER, atoi(SWITCH_CONFIG.MQTT_SERVER_PORT), NET);
     MQTT.onMessage(messageReceived);
     connect();
     MQTT.publish(CONFIG_TOPIC, INTRODUCTION_PAYLOAD, true, 1);

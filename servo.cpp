@@ -1,7 +1,7 @@
 #include "servo.h"
 
-int SWITCH_ON_SERVO_ANGLE = 145;
-int SWITCH_OFF_SERVO_ANGLE = 20;
+int SWITCH_ON_SERVO_ANGLE = 20;
+int SWITCH_OFF_SERVO_ANGLE = 145;
 bool SWITCH_STATE = false;
 bool PENDING_STATE_UPDATE = false;
 
